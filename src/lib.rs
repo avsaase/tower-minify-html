@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 use bytes::Bytes;
 // use futures::future::BoxFuture;
 use http::{Request, Response, header};
