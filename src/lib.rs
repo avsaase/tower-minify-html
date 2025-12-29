@@ -9,7 +9,7 @@ use std::{
     task::{Context, Poll},
 };
 use tower::{Layer, Service};
-use tracing::error;
+use tracing::{debug, error};
 
 pub use minify_html::Cfg;
 
@@ -96,6 +96,11 @@ where
             };
 
             let minified = minify_html::minify(&bytes, &config);
+            debug!(
+                "HTML minified: original size {} bytes, minified size {} bytes",
+                bytes.len(),
+                minified.len()
+            );
 
             let new_body = Full::new(Bytes::from(minified))
                 .map_err(|_e| unreachable!("Full body never errors"))
