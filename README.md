@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/tower-minify-html.svg)](https://crates.io/crates/tower-minify-html)
 [![Docs.rs](https://docs.rs/tower-minify-html/badge.svg)](https://docs.rs/tower-minify-html)
-[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](https://github.com/avsaa/tower-minify-html#license)
+[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](https://github.com/avsaase/tower-minify-html#license)
 
 A Tower layer for minifying HTML responses using `minify-html`.
 
