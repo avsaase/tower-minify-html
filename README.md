@@ -4,7 +4,7 @@
 [![Docs.rs](https://docs.rs/tower-minify-html/badge.svg)](https://docs.rs/tower-minify-html)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](https://github.com/avsaase/tower-minify-html#license)
 
-A Tower layer for minifying HTML responses using `minify-html`.
+A Tower layer for minifying HTML responses using [`minify-html`](https://crates.io/crates/minify-html).
 
 ## Usage
 
