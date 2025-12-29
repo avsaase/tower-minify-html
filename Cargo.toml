@@ -6,7 +6,7 @@ license = "MIT OR Apache-2.0"
 description = "A Tower layer for minifying HTML responses using minify-html"
 repository = "https://github.com/avsaase/tower-minify-html"
 keywords = ["tower", "middleware", "html", "minify", "axum"]
-categories = ["web-programming", "http-server"]
+categories = ["web-programming", "web-programming::http-server"]
 
 [dependencies]
 bytes = "1.11.0"
