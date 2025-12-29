@@ -140,17 +140,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "axum-example"
-version = "0.0.0"
-dependencies = [
- "axum",
- "minify-html",
- "tokio",
- "tower-http",
- "tower-minify-html",
-]
-
-[[package]]
 name = "base64-simd"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1994,11 +1983,14 @@ checksum = "121c2a6cda46980bb0fcd1647ffaf6cd3fc79a013de288782836f6df9c48780e"
 name = "tower-minify-html"
 version = "0.1.0"
 dependencies = [
+ "axum",
  "bytes",
  "http",
  "http-body-util",
  "minify-html",
+ "tokio",
  "tower",
+ "tower-http",
  "tracing",
 ]
 
