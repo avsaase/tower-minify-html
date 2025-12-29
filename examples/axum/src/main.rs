@@ -1,5 +1,6 @@
 use axum::{Router, response::Html, routing::get};
 use minify_html::Cfg;
+use tower_http::compression::CompressionLayer;
 use tower_minify_html::MinifyHtmlLayer;
 
 #[tokio::main]
@@ -11,7 +12,8 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(handler))
-        .layer(MinifyHtmlLayer::new(cfg));
+        .layer(MinifyHtmlLayer::new(cfg))
+        .layer(CompressionLayer::new());
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     println!("listening on {}", listener.local_addr().unwrap());
@@ -32,7 +34,7 @@ async fn handler() -> Html<&'static str> {
             </head>
             <body>
                 <h1>    Hello    World    </h1>
-                
+
             </body>
         </html>
         "#,

@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/tower-minify-html.svg)](https://crates.io/crates/tower-minify-html)
 [![Docs.rs](https://docs.rs/tower-minify-html/badge.svg)](https://docs.rs/tower-minify-html)
-[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](https://github.com/alexanderepstein/tower-minify-html#license)
+[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](https://github.com/avsaa/tower-minify-html#license)
 
 A Tower layer for minifying HTML responses using `minify-html`.
 
@@ -53,6 +53,17 @@ async fn handler() -> Html<&'static str> {
         "#,
     )
 }
+```
+
+## Compression
+
+When using this layer with compression (e.g., `tower-http`'s `CompressionLayer`), ensure that `MinifyHtmlLayer` is applied **before** the compression layer in your code (i.e., `MinifyHtmlLayer` should be the inner layer). This ensures that the HTML is minified before it is compressed.
+
+```rust
+let app = Router::new()
+    .route("/", get(handler))
+    .layer(MinifyHtmlLayer::new(cfg))
+    .layer(CompressionLayer::new());
 ```
 
 ## License
