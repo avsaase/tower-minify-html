@@ -1,0 +1,15 @@
+[package]
+name = "tower-minify-html"
+version = "0.1.0"
+edition = "2024"
+
+[workspace]
+members = ["examples/axum"]
+
+[dependencies]
+bytes = "1.11.0"
+http = "1.4.0"
+http-body-util = "0.1.3"
+minify-html = "0.18.1"
+tower = "0.5.2"
+tracing = "0.1.44"
