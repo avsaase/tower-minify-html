@@ -8,9 +8,6 @@ repository = "https://github.com/avsaase/tower-minify-html"
 keywords = ["tower", "middleware", "html", "minify", "axum"]
 categories = ["web-programming", "middleware"]
 
-[workspace]
-members = ["examples/axum"]
-
 [dependencies]
 bytes = "1.11.0"
 http = "1.4.0"
@@ -18,3 +15,8 @@ http-body-util = "0.1.3"
 minify-html = "0.18.1"
 tower = "0.5.2"
 tracing = "0.1.44"
+
+[dev-dependencies]
+axum = "0.8"
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.6", features = ["compression-br"] }
