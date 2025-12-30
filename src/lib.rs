@@ -21,10 +21,13 @@ pub use minify_html_onepass::Cfg as OnePassCfg;
 #[cfg(not(any(feature = "standard", feature = "onepass")))]
 compile_error!("Either feature 'standard' or 'onepass' (or both) must be enabled");
 
+/// The minification backend to use.
 #[derive(Clone, Copy, Debug)]
 pub enum Backend {
+    /// Use the standard `minify-html` backend.
     #[cfg(feature = "standard")]
     Standard,
+    /// Use the `minify-html-onepass` backend.
     #[cfg(feature = "onepass")]
     Onepass,
 }
@@ -38,6 +41,7 @@ impl Default for Backend {
     }
 }
 
+/// A Tower layer for minifying HTML responses.
 #[derive(Clone)]
 pub struct MinifyHtmlLayer {
     backend: Backend,
@@ -49,16 +53,19 @@ pub struct MinifyHtmlLayer {
 }
 
 impl MinifyHtmlLayer {
+    /// Create a new [`MinifyHtmlLayerBuilder`].
     pub fn builder() -> MinifyHtmlLayerBuilder {
         MinifyHtmlLayerBuilder::default()
     }
 
+    /// Create a new [`MinifyHtmlLayer`] with the standard backend and the given configuration.
     #[cfg(feature = "standard")]
     pub fn new(config: minify_html::Cfg) -> Self {
         Self::builder().standard_config(config).build()
     }
 }
 
+/// A builder for [`MinifyHtmlLayer`].
 #[derive(Default)]
 pub struct MinifyHtmlLayerBuilder {
     backend: Backend,
@@ -69,23 +76,27 @@ pub struct MinifyHtmlLayerBuilder {
 }
 
 impl MinifyHtmlLayerBuilder {
+    /// Set the minification backend.
     pub fn backend(mut self, backend: Backend) -> Self {
         self.backend = backend;
         self
     }
 
+    /// Set the configuration for the standard backend.
     #[cfg(feature = "standard")]
     pub fn standard_config(mut self, config: minify_html::Cfg) -> Self {
         self.standard_config = config;
         self
     }
 
+    /// Set the configuration for the onepass backend.
     #[cfg(feature = "onepass")]
     pub fn onepass_config(mut self, config: minify_html_onepass::Cfg) -> Self {
         self.onepass_config = config;
         self
     }
 
+    /// Build the [`MinifyHtmlLayer`].
     pub fn build(self) -> MinifyHtmlLayer {
         MinifyHtmlLayer {
             backend: self.backend,
@@ -112,6 +123,7 @@ impl<S> Layer<S> for MinifyHtmlLayer {
     }
 }
 
+/// A Tower service for minifying HTML responses.
 #[derive(Clone)]
 pub struct MinifyHtml<S> {
     inner: S,
