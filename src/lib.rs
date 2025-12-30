@@ -5,22 +5,95 @@ use bytes::Bytes;
 use http::{Request, Response, header};
 use http_body_util::{BodyExt, Full, combinators::UnsyncBoxBody};
 use std::{
+    future::Future,
     pin::Pin,
     task::{Context, Poll},
 };
 use tower::{Layer, Service};
 use tracing::{debug, error};
 
+#[cfg(feature = "standard")]
 pub use minify_html::Cfg;
+
+#[cfg(feature = "onepass")]
+pub use minify_html_onepass::Cfg as OnePassCfg;
+
+#[cfg(not(any(feature = "standard", feature = "onepass")))]
+compile_error!("Either feature 'standard' or 'onepass' (or both) must be enabled");
+
+#[derive(Clone, Copy, Debug)]
+pub enum Backend {
+    #[cfg(feature = "standard")]
+    Standard,
+    #[cfg(feature = "onepass")]
+    Onepass,
+}
+
+impl Default for Backend {
+    fn default() -> Self {
+        #[cfg(feature = "standard")]
+        return Backend::Standard;
+        #[cfg(all(feature = "onepass", not(feature = "standard")))]
+        return Backend::Onepass;
+    }
+}
 
 #[derive(Clone)]
 pub struct MinifyHtmlLayer {
-    config: Cfg,
+    backend: Backend,
+    #[cfg(feature = "standard")]
+    standard_config: minify_html::Cfg,
+    #[cfg(feature = "onepass")]
+    // minify_html_onepass::Cfg is not Clone, so wrap in Arc. See https://github.com/wilsonzlin/minify-html/pull/267.
+    onepass_config: std::sync::Arc<minify_html_onepass::Cfg>,
 }
 
 impl MinifyHtmlLayer {
-    pub fn new(config: Cfg) -> Self {
-        Self { config }
+    pub fn builder() -> MinifyHtmlLayerBuilder {
+        MinifyHtmlLayerBuilder::default()
+    }
+
+    #[cfg(feature = "standard")]
+    pub fn new(config: minify_html::Cfg) -> Self {
+        Self::builder().standard_config(config).build()
+    }
+}
+
+#[derive(Default)]
+pub struct MinifyHtmlLayerBuilder {
+    backend: Backend,
+    #[cfg(feature = "standard")]
+    standard_config: minify_html::Cfg,
+    #[cfg(feature = "onepass")]
+    onepass_config: minify_html_onepass::Cfg,
+}
+
+impl MinifyHtmlLayerBuilder {
+    pub fn backend(mut self, backend: Backend) -> Self {
+        self.backend = backend;
+        self
+    }
+
+    #[cfg(feature = "standard")]
+    pub fn standard_config(mut self, config: minify_html::Cfg) -> Self {
+        self.standard_config = config;
+        self
+    }
+
+    #[cfg(feature = "onepass")]
+    pub fn onepass_config(mut self, config: minify_html_onepass::Cfg) -> Self {
+        self.onepass_config = config;
+        self
+    }
+
+    pub fn build(self) -> MinifyHtmlLayer {
+        MinifyHtmlLayer {
+            backend: self.backend,
+            #[cfg(feature = "standard")]
+            standard_config: self.standard_config,
+            #[cfg(feature = "onepass")]
+            onepass_config: std::sync::Arc::new(self.onepass_config),
+        }
     }
 }
 
@@ -30,7 +103,11 @@ impl<S> Layer<S> for MinifyHtmlLayer {
     fn layer(&self, inner: S) -> Self::Service {
         MinifyHtml {
             inner,
-            config: self.config.clone(),
+            backend: self.backend,
+            #[cfg(feature = "standard")]
+            standard_config: self.standard_config.clone(),
+            #[cfg(feature = "onepass")]
+            onepass_config: self.onepass_config.clone(),
         }
     }
 }
@@ -38,7 +115,11 @@ impl<S> Layer<S> for MinifyHtmlLayer {
 #[derive(Clone)]
 pub struct MinifyHtml<S> {
     inner: S,
-    config: Cfg,
+    backend: Backend,
+    #[cfg(feature = "standard")]
+    standard_config: minify_html::Cfg,
+    #[cfg(feature = "onepass")]
+    onepass_config: std::sync::Arc<minify_html_onepass::Cfg>,
 }
 
 impl<S, ReqBody, ResBody> Service<Request<ReqBody>> for MinifyHtml<S>
@@ -59,7 +140,11 @@ where
 
     fn call(&mut self, request: Request<ReqBody>) -> Self::Future {
         let response_future = self.inner.call(request);
-        let config = self.config.clone();
+        let backend = self.backend;
+        #[cfg(feature = "standard")]
+        let standard_config = self.standard_config.clone();
+        #[cfg(feature = "onepass")]
+        let onepass_config = self.onepass_config.clone();
 
         Box::pin(async move {
             let response = response_future.await?;
@@ -84,18 +169,27 @@ where
                 Ok(c) => c.to_bytes(),
                 Err(_e) => {
                     error!("Failed to collect response body for minification");
-                    return Ok(Response::builder()
-                        .status(500)
-                        .body(
-                            Full::from("Error processing response body")
-                                .map_err(|e| e.into())
-                                .boxed_unsync(),
-                        )
-                        .unwrap());
+                    return Ok(error_500_response());
                 }
             };
 
-            let minified = minify_html::minify(&bytes, &config);
+            let minified = match backend {
+                #[cfg(feature = "standard")]
+                Backend::Standard => minify_html::minify(&bytes, &standard_config),
+
+                #[cfg(feature = "onepass")]
+                Backend::Onepass => {
+                    let mut vec = bytes.to_vec();
+                    match minify_html_onepass::in_place(&mut vec, &onepass_config) {
+                        Ok(len) => {
+                            vec.truncate(len);
+                            vec
+                        }
+                        Err(_) => return Ok(error_500_response()),
+                    }
+                }
+            };
+
             debug!(
                 "HTML minified: original size {} bytes, minified size {} bytes",
                 bytes.len(),
@@ -109,4 +203,16 @@ where
             Ok(Response::from_parts(parts, new_body))
         })
     }
+}
+
+fn error_500_response() -> Response<UnsyncBoxBody<Bytes, Box<dyn std::error::Error + Send + Sync>>>
+{
+    Response::builder()
+        .status(500)
+        .body(
+            Full::from("Internal Server Error")
+                .map_err(|e| e.into())
+                .boxed_unsync(),
+        )
+        .unwrap()
 }

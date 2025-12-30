@@ -55,6 +55,42 @@ async fn handler() -> Html<&'static str> {
 }
 ```
 
+## Features
+
+- `standard` (default): Enables the standard `minify-html` backend.
+- `onepass`: Enables the `minify-html-onepass` backend.
+
+Both features can be enabled at the same time.
+
+## Backends
+
+You can choose between the standard and onepass backends using the `MinifyHtmlLayerBuilder`.
+
+### Standard Backend
+
+The standard backend uses [`minify-html`](https://crates.io/crates/minify-html) and is the default and can be used with `MinifyHtmlLayer::new` or the builder.
+
+```rust
+use tower_minify_html::{MinifyHtmlLayer, Cfg};
+
+let mut cfg = Cfg::new();
+let layer = MinifyHtmlLayer::new(cfg);
+```
+
+### Onepass Backend
+
+The onepass backend uses [`minify-html-onepass`](https://crates.io/crates/minify-html-onepass) and is faster but has more limitations. It requires the `onepass` feature.
+
+```rust
+use tower_minify_html::{MinifyHtmlLayer, Backend, OnePassCfg};
+
+let mut cfg = OnePassCfg::new();
+let layer = MinifyHtmlLayer::builder()
+    .backend(Backend::Onepass)
+    .onepass_config(cfg)
+    .build();
+```
+
 ## Compression
 
 When using this layer with compression (e.g., `tower-http`'s `CompressionLayer`), ensure that `MinifyHtmlLayer` is applied **before** the compression layer in your code (i.e., `MinifyHtmlLayer` should be the inner layer). This ensures that the HTML is minified before it is compressed.
